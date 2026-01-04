@@ -11,7 +11,7 @@ class Dinov2VisionTower(nn.Module):
         self.select_layer = getattr(args, 'mm_vision_select_layer', -2)
         self.select_feature = getattr(args, 'mm_vision_select_feature', 'patch')
         self.patch_size = 14  # Dinov2-B/14
-        self.target_sizes = [224, 378, 518]  # 多尺度
+        self.target_sizes = [224, 336, 518]  # 多尺度
         if not delay_load or getattr(args, 'unfreeze_mm_vision_tower', False):
             self.load_model()
         else:
@@ -41,7 +41,7 @@ class Dinov2VisionTower(nn.Module):
     def _run_one_scale(self, images_chw, side: int):
         """
         images_chw: (B, 3, H, W) tensor in [0,1] or [0,255]
-        side: 224 / 518 / 784
+        side: 224 / 336 / 518
         returns: (B, N=grid^2, C) patch tokens at this scale (未插值到最大网格)
         """
         # 1) 先把输入 resize 到 side×side（不改变通道/类型/设备）
@@ -76,8 +76,8 @@ class Dinov2VisionTower(nn.Module):
     @torch.no_grad()
     def multi_scale_forward(self, images):
         """
-        images: Tensor (B,3,768,768) 或 (B,3,H,W)，数值范围 [0,1] / [0,255] 都可
-        流程：224/518/784 -> token -> 小网格插值到最大网格(56x56) -> 最终在通道维拼接
+        images: Tensor (B,3,518,518) 或 (B,3,H,W)，数值范围 [0,1] / [0,255] 都可
+        流程：224/336/518 -> token -> 小网格插值到最大网格(56x56) -> 最终在通道维拼接
         返回: (B, 56*56, 3*C)
         """
         # 提取三个尺度的 patch tokens
@@ -137,8 +137,7 @@ class Dinov2VisionTower(nn.Module):
 
     @property
     def num_patches_per_side(self):
-        # 以最大尺度 784 为准
-        return 784 // self.patch_size  # 56
+        return 518 // self.patch_size
 
     @property
     def num_patches(self):
