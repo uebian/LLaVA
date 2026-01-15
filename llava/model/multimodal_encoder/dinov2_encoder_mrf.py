@@ -133,7 +133,7 @@ class Dinov2VisionTower(nn.Module):
 
     @property
     def hidden_size(self):
-        return self.config.hidden_size
+        return 3 * self.config.hidden_size
 
     @property
     def num_patches_per_side(self):
