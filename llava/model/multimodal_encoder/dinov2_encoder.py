@@ -16,6 +16,7 @@ class Dinov2VisionTower(nn.Module):
         self.select_feature = getattr(args, 'mm_vision_select_feature', 'patch')
 
         # Use AutoImageProcessor for Dinov2
+        # img_size = 336
         img_size = 518
         self.image_processor = AutoImageProcessor.from_pretrained(self.vision_tower_name,
                                                               size={"height": img_size, "width": img_size}, crop_size={"height": img_size, "width": img_size})

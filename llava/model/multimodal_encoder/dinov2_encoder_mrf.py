@@ -11,7 +11,9 @@ class Dinov2VisionTower(nn.Module):
         self.select_layer = getattr(args, 'mm_vision_select_layer', -2)
         self.select_feature = getattr(args, 'mm_vision_select_feature', 'patch')
         self.patch_size = 14  # Dinov2-B/14
-        self.target_sizes = [224, 336, 518]  # 多尺度
+        # self.target_sizes = [224, 336]  # 多尺度
+        # self.target_sizes = [224, 336, 518]  # 多尺度
+        self.target_sizes = [224, 378, 518]  # 多尺度
         if not delay_load or getattr(args, 'unfreeze_mm_vision_tower', False):
             self.load_model()
         else:
@@ -117,7 +119,8 @@ class Dinov2VisionTower(nn.Module):
     @property
     def dummy_feature(self):
         # 注意 dummy 的通道维需要 x3
-        return torch.zeros(1, (784//self.patch_size)**2, 3*self.hidden_size, device=self.device, dtype=self.dtype)
+        return torch.zeros(1, (max(self.target_sizes)//self.patch_size)**2, len(self.target_sizes)*self.hidden_size, device=self.device, dtype=self.dtype)
+        # return torch.zeros(1, (336//self.patch_size)**2, len(self.target_sizes)*self.hidden_size, device=self.device, dtype=self.dtype)
 
     @property
     def dtype(self):
@@ -133,7 +136,7 @@ class Dinov2VisionTower(nn.Module):
 
     @property
     def hidden_size(self):
-        return 3 * self.config.hidden_size
+        return len(self.target_sizes) * self.config.hidden_size
 
     @property
     def num_patches_per_side(self):

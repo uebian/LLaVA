@@ -728,7 +728,6 @@ class LazySupervisedDataset(Dataset):
         if isinstance(i, int):
             data_dict = dict(input_ids=data_dict["input_ids"][0],
                              labels=data_dict["labels"][0])
-        # raise RuntimeError(f"PPPPPPPPPPPPPPPPPTTTTTTT, shape={image.shape}")
 
         # image exist in the data
         if 'image' in self.list_data_dict[i]:
@@ -832,10 +831,6 @@ def train(attn_implementation=None):
                 torch_dtype=(torch.bfloat16 if training_args.bf16 else None),
                 **bnb_model_from_pretrained_args
             )
-            # model.generation_config.do_sample = False
-            # model.generation_config.temperature = None
-            # model.generation_config.top_p = None
-            # model.generation_config.top_k=None
     else:
         model = transformers.LlamaForCausalLM.from_pretrained(
             model_args.model_name_or_path,
@@ -963,13 +958,10 @@ def train(attn_implementation=None):
 
     data_module = make_supervised_data_module(tokenizer=tokenizer,
                                               data_args=data_args)
-    # training_args.set_save(strategy="steps", steps=1)
-    # print(model.config)
     trainer = LLaVATrainer(model=model,
                     tokenizer=tokenizer,
                     args=training_args,
                     **data_module)
-    # trainer.save_model()
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
     else:
