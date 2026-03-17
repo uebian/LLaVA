@@ -1,5 +1,6 @@
 import os
-from .clip_encoder import CLIPVisionTower, CLIPVisionTowerS2
+# from .clip_encoder import CLIPVisionTower, CLIPVisionTowerS2
+from .clip_encoder_mrf import CLIPVisionTower, CLIPVisionTowerS2
 # from .dinov2_encoder import Dinov2VisionTower, Dinov2VisionTowerS2
 from .dinov2_encoder_mrf import Dinov2VisionTower
 
