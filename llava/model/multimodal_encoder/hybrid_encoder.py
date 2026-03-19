@@ -4,7 +4,7 @@ import torch.nn as nn
 from transformers import CLIPVisionModel, CLIPImageProcessor, CLIPVisionConfig, AutoImageProcessor, Dinov2Model
 
 
-class HybirdVisionTower(nn.Module):
+class HybridVisionTower(nn.Module):
     def __init__(self, vision_tower, args, delay_load=False):
         super().__init__()
 
@@ -22,7 +22,7 @@ class HybirdVisionTower(nn.Module):
         elif getattr(args, 'unfreeze_mm_vision_tower', False):
             self.load_model()
         else:
-            self.cfg_only = CLIPVisionConfig.from_pretrained(self.vision_tower_name)
+            self.cfg_only = CLIPVisionConfig.from_pretrained(self.clip_vision_tower_name)
         
 
     def load_model(self, device_map=None):
@@ -33,6 +33,8 @@ class HybirdVisionTower(nn.Module):
         self.clip_image_processor = CLIPImageProcessor.from_pretrained(self.clip_vision_tower_name)
         self.dino_image_processor = AutoImageProcessor.from_pretrained(self.dino_vision_tower_name,
                                                               size={"height": 336, "width": 336}, crop_size={"height": 336, "width": 336})
+
+        self.image_processor = (self.clip_image_processor, self.dino_image_processor)
 
         self.clip_vision_tower = CLIPVisionModel.from_pretrained(self.clip_vision_tower_name, device_map=device_map)
         self.clip_vision_tower.requires_grad_(False)

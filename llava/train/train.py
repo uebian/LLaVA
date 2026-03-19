@@ -696,11 +696,11 @@ class LazySupervisedDataset(Dataset):
         if 'image' in sources[0]:
             image_file = self.list_data_dict[i]['image']
             image_folder = self.data_args.image_folder
-            if getattr(self.data_args, "clip_image_processor", None) is not None:
-                # hybird mode
-                clip_processor = self.data_args.clip_image_processor
-                dino_processor = self.data_args.dino_image_processor
-                image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
+            processor = self.data_args.image_processor
+            image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
+            if isinstance(processor, tuple):
+                # hybrid mode
+                clip_processor, dino_processor = processor
                 if self.data_args.image_aspect_ratio == 'pad':
                     def expand2square(pil_img, background_color):
                         width, height = pil_img.size
@@ -724,8 +724,6 @@ class LazySupervisedDataset(Dataset):
                     copy.deepcopy([e["conversations"] for e in sources]),
                     self.data_args)
             else:
-                processor = self.data_args.image_processor
-                image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
                 if self.data_args.image_aspect_ratio == 'pad':
                     def expand2square(pil_img, background_color):
                         width, height = pil_img.size
@@ -758,19 +756,21 @@ class LazySupervisedDataset(Dataset):
 
         # image exist in the data
         if 'image' in self.list_data_dict[i]:
-            if getattr(self.data_args, "clip_image_processor", None) is not None:
-                # hybird mode
+            if isinstance(self.data_args.image_processor, tuple):
+                # hybrid mode
                 data_dict['clip_image'] = clip_image
                 data_dict['dino_image'] = dino_image
             else:
                 data_dict['image'] = image
         elif self.data_args.is_multimodal:
             # image does not exist in the data, but the model is multimodal
-            if getattr(self.data_args, "clip_image_processor", None) is not None:
-                crop_size = self.data_args.clip_image_processor.crop_size
+            if isinstance(self.data_args.image_processor, tuple):
+                # hybrid mode
+                crop_size = self.data_args.image_processor[0].crop_size # Use the clip image processor
             else:    
                 crop_size = self.data_args.image_processor.crop_size
-            if getattr(self.data_args, "clip_image_processor", None) is not None:
+            if isinstance(self.data_args.image_processor, tuple):
+                # hybrid mode
                 data_dict['clip_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
                 data_dict['dino_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
             else:
@@ -965,11 +965,7 @@ def train(attn_implementation=None):
         vision_tower = model.get_vision_tower()
         vision_tower.to(dtype=torch.bfloat16 if training_args.bf16 else torch.float16, device=training_args.device)
         
-        if 'hybird' in model_args.vision_tower:
-            data_args.clip_image_processor = vision_tower.clip_image_processor
-            data_args.dino_image_processor = vision_tower.dino_image_processor
-        else:
-            data_args.image_processor = vision_tower.image_processor
+        data_args.image_processor = vision_tower.image_processor
         data_args.is_multimodal = True
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio

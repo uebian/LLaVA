@@ -158,11 +158,11 @@ class LlavaMetaForCausalLM(ABC):
                 images = [x.unsqueeze(0) if x.ndim == 3 else x for x in images]
             concat_images_clip = torch.cat([image for image in images], dim=0)
             if dino_images is not None:
-                assert "hybird" in self.config.mm_vision_tower
+                assert "hybrid" in self.config.mm_vision_tower
                 concat_images_dino = torch.cat([image for image in dino_images], dim=0)
                 image_features = self.encode_images(concat_images_clip, concat_images_dino)
             else:
-                assert "hybird" not in self.config.mm_vision_tower
+                assert "hybrid" not in self.config.mm_vision_tower
                 image_features = self.encode_images(concat_images_clip)
             split_sizes = [image.shape[0] for image in images]
             image_features = torch.split(image_features, split_sizes, dim=0)
