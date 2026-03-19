@@ -696,28 +696,56 @@ class LazySupervisedDataset(Dataset):
         if 'image' in sources[0]:
             image_file = self.list_data_dict[i]['image']
             image_folder = self.data_args.image_folder
-            processor = self.data_args.image_processor
-            image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
-            if self.data_args.image_aspect_ratio == 'pad':
-                def expand2square(pil_img, background_color):
-                    width, height = pil_img.size
-                    if width == height:
-                        return pil_img
-                    elif width > height:
-                        result = Image.new(pil_img.mode, (width, width), background_color)
-                        result.paste(pil_img, (0, (width - height) // 2))
-                        return result
-                    else:
-                        result = Image.new(pil_img.mode, (height, height), background_color)
-                        result.paste(pil_img, ((height - width) // 2, 0))
-                        return result
-                image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
-                image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+            if getattr(self.data_args, "clip_image_processor", None) is not None:
+                # hybird mode
+                clip_processor = self.data_args.clip_image_processor
+                dino_processor = self.data_args.dino_image_processor
+                image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
+                if self.data_args.image_aspect_ratio == 'pad':
+                    def expand2square(pil_img, background_color):
+                        width, height = pil_img.size
+                        if width == height:
+                            return pil_img
+                        elif width > height:
+                            result = Image.new(pil_img.mode, (width, width), background_color)
+                            result.paste(pil_img, (0, (width - height) // 2))
+                            return result
+                        else:
+                            result = Image.new(pil_img.mode, (height, height), background_color)
+                            result.paste(pil_img, ((height - width) // 2, 0))
+                            return result
+                    image = expand2square(image, tuple(int(x*255) for x in clip_processor.image_mean))
+                    clip_image = clip_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                    dino_image = dino_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                else:
+                    clip_image = clip_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                    dino_image = dino_processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                sources = preprocess_multimodal(
+                    copy.deepcopy([e["conversations"] for e in sources]),
+                    self.data_args)
             else:
-                image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
-            sources = preprocess_multimodal(
-                copy.deepcopy([e["conversations"] for e in sources]),
-                self.data_args)
+                processor = self.data_args.image_processor
+                image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
+                if self.data_args.image_aspect_ratio == 'pad':
+                    def expand2square(pil_img, background_color):
+                        width, height = pil_img.size
+                        if width == height:
+                            return pil_img
+                        elif width > height:
+                            result = Image.new(pil_img.mode, (width, width), background_color)
+                            result.paste(pil_img, (0, (width - height) // 2))
+                            return result
+                        else:
+                            result = Image.new(pil_img.mode, (height, height), background_color)
+                            result.paste(pil_img, ((height - width) // 2, 0))
+                            return result
+                    image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
+                    image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                else:
+                    image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                sources = preprocess_multimodal(
+                    copy.deepcopy([e["conversations"] for e in sources]),
+                    self.data_args)
         else:
             sources = copy.deepcopy([e["conversations"] for e in sources])
         data_dict = preprocess(
@@ -730,11 +758,23 @@ class LazySupervisedDataset(Dataset):
 
         # image exist in the data
         if 'image' in self.list_data_dict[i]:
-            data_dict['image'] = image
+            if getattr(self.data_args, "clip_image_processor", None) is not None:
+                # hybird mode
+                data_dict['clip_image'] = clip_image
+                data_dict['dino_image'] = dino_image
+            else:
+                data_dict['image'] = image
         elif self.data_args.is_multimodal:
             # image does not exist in the data, but the model is multimodal
-            crop_size = self.data_args.image_processor.crop_size
-            data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
+            if getattr(self.data_args, "clip_image_processor", None) is not None:
+                crop_size = self.data_args.clip_image_processor.crop_size
+            else:    
+                crop_size = self.data_args.image_processor.crop_size
+            if getattr(self.data_args, "clip_image_processor", None) is not None:
+                data_dict['clip_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
+                data_dict['dino_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
+            else:
+                data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
         return data_dict
 
 
@@ -768,6 +808,16 @@ class DataCollatorForSupervisedDataset(object):
                 batch['images'] = torch.stack(images)
             else:
                 batch['images'] = images
+
+        if 'clip_image' in instances[0]:
+            clip_images = [instance['clip_image'] for instance in instances]
+            dino_images = [instance['dino_image'] for instance in instances]
+            if all(x is not None and x.shape == clip_images[0].shape for x in clip_images):
+                batch['images'] = torch.stack(clip_images)
+                batch['dino_images'] = torch.stack(dino_images)
+            else:
+                batch['images'] = clip_images
+                batch['dino_images'] = dino_images
 
         return batch
 
@@ -914,8 +964,12 @@ def train(attn_implementation=None):
         
         vision_tower = model.get_vision_tower()
         vision_tower.to(dtype=torch.bfloat16 if training_args.bf16 else torch.float16, device=training_args.device)
-
-        data_args.image_processor = vision_tower.image_processor
+        
+        if 'hybird' in model_args.vision_tower:
+            data_args.clip_image_processor = vision_tower.clip_image_processor
+            data_args.dino_image_processor = vision_tower.dino_image_processor
+        else:
+            data_args.image_processor = vision_tower.image_processor
         data_args.is_multimodal = True
 
         model.config.image_aspect_ratio = data_args.image_aspect_ratio
