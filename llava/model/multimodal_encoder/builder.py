@@ -3,7 +3,8 @@ from .clip_encoder import CLIPVisionTower, CLIPVisionTowerS2
 # from .clip_encoder_mrf import CLIPVisionTower, CLIPVisionTowerS2
 # from .dinov2_encoder import Dinov2VisionTower, Dinov2VisionTowerS2
 from .dinov2_encoder_mrf import Dinov2VisionTower
-from .hybrid_encoder import HybridVisionTower
+# from .hybrid_encoder import HybridVisionTower
+from .hybrid_encoder_mrf import HybridVisionTower
 
 def build_vision_tower(vision_tower_cfg, **kwargs):
     vision_tower = getattr(vision_tower_cfg, 'mm_vision_tower', getattr(vision_tower_cfg, 'vision_tower', None))
