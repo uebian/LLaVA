@@ -758,7 +758,7 @@ class LazySupervisedDataset(Dataset):
         if 'image' in self.list_data_dict[i]:
             if isinstance(self.data_args.image_processor, tuple):
                 # hybrid mode
-                data_dict['clip_image'] = clip_image
+                data_dict['image'] = clip_image
                 data_dict['dino_image'] = dino_image
             else:
                 data_dict['image'] = image
@@ -771,8 +771,10 @@ class LazySupervisedDataset(Dataset):
                 crop_size = self.data_args.image_processor.crop_size
             if isinstance(self.data_args.image_processor, tuple):
                 # hybrid mode
-                data_dict['clip_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
+                data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
                 data_dict['dino_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
+            elif "siglip2_encoder" in str(self.data_args.image_processor):
+                data_dict['image'] = torch.ones((576, 768))
             else:
                 data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
         return data_dict
@@ -809,15 +811,12 @@ class DataCollatorForSupervisedDataset(object):
             else:
                 batch['images'] = images
 
-        if 'clip_image' in instances[0]:
-            clip_images = [instance['clip_image'] for instance in instances]
-            dino_images = [instance['dino_image'] for instance in instances]
-            if all(x is not None and x.shape == clip_images[0].shape for x in clip_images):
-                batch['images'] = torch.stack(clip_images)
-                batch['dino_images'] = torch.stack(dino_images)
-            else:
-                batch['images'] = clip_images
-                batch['dino_images'] = dino_images
+            if 'dino_image' in instances[0]:
+                dino_images = [instance['dino_image'] for instance in instances]
+                if all(x is not None and x.shape == dino_images[0].shape for x in dino_images):
+                    batch['dino_images'] = torch.stack(dino_images)
+                else:
+                    batch['dino_images'] = dino_images
 
         return batch
 

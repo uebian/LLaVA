@@ -54,8 +54,6 @@ class Dinov2VisionTower(nn.Module):
 
     @torch.no_grad()
     def forward(self, images): # Forward pass to extract features. Handles both single tensor and list of tensors.
-        # raise RuntimeError(f"PPPPPPPPPPPPPPPPPTTTTTTT, shape={str(images.shape)}")
-
         if type(images) is list:
             image_features = []
             for image in images:
