@@ -3,6 +3,10 @@ from .clip_encoder import CLIPVisionTower, CLIPVisionTowerS2
 # from .clip_encoder_mrf import CLIPVisionTower, CLIPVisionTowerS2
 # from .dinov2_encoder import Dinov2VisionTower, Dinov2VisionTowerS2
 from .dinov2_encoder_mrf import Dinov2VisionTower
+# from .hybrid_encoder import HybridVisionTower
+from .hybrid_encoder_mrf import HybridVisionTower
+# from .siglip2_encoder import SigLip2VisionTower
+from .siglip2_encoder_mrf import SigLip2VisionTower
 
 def build_vision_tower(vision_tower_cfg, **kwargs):
     vision_tower = getattr(vision_tower_cfg, 'mm_vision_tower', getattr(vision_tower_cfg, 'vision_tower', None))
@@ -15,6 +19,12 @@ def build_vision_tower(vision_tower_cfg, **kwargs):
         #     return Dinov2VisionTowerS2(vision_tower, args=vision_tower_cfg, **kwargs)
         # else:
         return Dinov2VisionTower(vision_tower, args=vision_tower_cfg, **kwargs)
+
+    if vision_tower.startswith("google/siglip2"):
+        return SigLip2VisionTower(vision_tower, args=vision_tower_cfg, **kwargs)
+
+    if vision_tower.startswith("hybrid"):
+        return HybridVisionTower(vision_tower, args=vision_tower_cfg, **kwargs)
 
     if is_absolute_path_exists or vision_tower.startswith("openai") or vision_tower.startswith("laion") or "ShareGPT4V" in vision_tower:
         if use_s2:
