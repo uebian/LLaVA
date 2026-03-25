@@ -7,7 +7,7 @@ deepspeed llava/train/train_mem.py \
     --data_path ./playground/data/llava_v1_5_mix665k.json \
     --image_folder ./playground/data \
     --vision_tower google/siglip2-so400m-patch16-naflex \
-    --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-7b-siglip2-384-pretrain/mm_projector.bin \
+    --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-7b-siglip2-256-384-pretrain/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
@@ -15,7 +15,7 @@ deepspeed llava/train/train_mem.py \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/llava-v1.5-7b-siglip2-384 \
+    --output_dir ./checkpoints/llava-v1.5-7b-siglip2-256-384 \
     --num_train_epochs 1 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 4 \

@@ -771,8 +771,12 @@ class LazySupervisedDataset(Dataset):
                 crop_size = self.data_args.image_processor.crop_size
             if isinstance(self.data_args.image_processor, tuple):
                 # hybrid mode
-                data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
-                data_dict['dino_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
+                if "siglip2_encoder" in str(self.data_args.image_processor):
+                    data_dict['image'] = torch.ones((576, 768))
+                    data_dict['dino_image'] = torch.ones((256, 768))
+                else:
+                    data_dict['image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
+                    data_dict['dino_image'] = torch.zeros(3, crop_size['height'], crop_size['width'])
             elif "siglip2_encoder" in str(self.data_args.image_processor):
                 data_dict['image'] = torch.ones((576, 768))
             else:

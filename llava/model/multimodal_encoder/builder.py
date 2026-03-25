@@ -5,7 +5,8 @@ from .clip_encoder import CLIPVisionTower, CLIPVisionTowerS2
 from .dinov2_encoder_mrf import Dinov2VisionTower
 # from .hybrid_encoder import HybridVisionTower
 from .hybrid_encoder_mrf import HybridVisionTower
-from .siglip2_encoder import SigLip2VisionTower
+# from .siglip2_encoder import SigLip2VisionTower
+from .siglip2_encoder_mrf import SigLip2VisionTower
 
 def build_vision_tower(vision_tower_cfg, **kwargs):
     vision_tower = getattr(vision_tower_cfg, 'mm_vision_tower', getattr(vision_tower_cfg, 'vision_tower', None))
